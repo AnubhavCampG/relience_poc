@@ -8,6 +8,10 @@
 *.sqlite
 *.sqlite3
 
+# Runtime artifacts (quotes, uploads, local sqlite)
+runtime/
+!runtime/.gitkeep
+
 # Python cache / compilation files
 __pycache__/
 *.py[cod]

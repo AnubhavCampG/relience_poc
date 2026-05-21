@@ -196,7 +196,7 @@ def batch_extract_pdfs(
 def main():
     """
     Main function for command-line usage.
-    Usage: python pdf_text_extractor.py <pdf_file_path> [--output OUTPUT_FILE] [--ocr]
+    Usage: python scripts/extract_pdf.py <pdf_file_path> [--output OUTPUT_FILE] [--ocr]
     """
     
     import argparse

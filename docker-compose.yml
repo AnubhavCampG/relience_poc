@@ -1,0 +1,20 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: reliance_postgres
+    environment:
+      POSTGRES_USER: reliance
+      POSTGRES_PASSWORD: reliance
+      POSTGRES_DB: reliance
+    ports:
+      - "5432:5432"
+    volumes:
+      - reliance_pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U reliance -d reliance"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  reliance_pg_data:
