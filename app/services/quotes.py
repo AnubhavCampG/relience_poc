@@ -12,6 +12,21 @@ from app.db.engine import get_engine
 
 
 def _quotes_dir() -> Path:
+    """
+    Task:
+        Retrieve the local system path to the sales quotes folder, creating folders dynamically if required.
+
+    Input_Params:
+        None
+
+    Output_Params:
+        Path:
+            The resolved quotes folder path.
+
+    Returns:
+        Path:
+            Resolved quotes directory.
+    """
     settings = get_settings()
     path = settings.project_root / settings.quotes_dir
     path.mkdir(parents=True, exist_ok=True)
@@ -20,6 +35,23 @@ def _quotes_dir() -> Path:
 
 
 def validate_customer_exists(customer_no: str) -> bool:
+    """
+    Task:
+        Check database records using the customer reference identifier to verify if they exist in the PORTAL_CUSTOMER table.
+
+    Input_Params:
+        customer_no (str):
+            The unique customer reference ID.
+            Example: "CUST-998"
+
+    Output_Params:
+        bool:
+            True if customer is verified and exists in database, otherwise False.
+
+    Returns:
+        bool:
+            Boolean representation of customer existence status.
+    """
     engine = get_engine()
     with engine.connect() as conn:
         result = conn.execute(
@@ -30,6 +62,30 @@ def validate_customer_exists(customer_no: str) -> bool:
 
 
 def create_quote(customer_no: str, items: list[dict[str, Any]]) -> dict[str, Any]:
+    """
+    Task:
+        Draft a new sales quote for a verified customer, calculate basic metrics, persist it to a local JSON file in quotes directory, and return metadata.
+
+    Input_Params:
+        customer_no (str):
+            The target customer identification number.
+            Example: "CUST-998"
+        items (list[dict[str, Any]]):
+            Line items list, each describing a product, quantity, and price.
+            Example: [{"product_id": "P1", "quantity": 5.0, "price": 10.0}]
+
+    Output_Params:
+        dict[str, Any]:
+            A summary dictionary containing quote details, creation message, and path to generated document.
+
+    Returns:
+        dict[str, Any]:
+            Generated quote summary.
+
+    Raises:
+        ValueError:
+            Raised if customer does not exist in the system database records.
+    """
     if not validate_customer_exists(customer_no):
         raise ValueError(f"Customer {customer_no} not found")
 
@@ -56,6 +112,23 @@ def create_quote(customer_no: str, items: list[dict[str, Any]]) -> dict[str, Any
 
 
 def list_quotes_for_customer(customer_no: str) -> list[dict[str, Any]]:
+    """
+    Task:
+        Scan the quotes directory for JSON sales quote documents matching the specified customer, parse their contents, and return a list of records.
+
+    Input_Params:
+        customer_no (str):
+            The unique customer reference ID.
+            Example: "CUST-998"
+
+    Output_Params:
+        list[dict[str, Any]]:
+            A list of dictionary records containing parsed details of matches.
+
+    Returns:
+        list[dict[str, Any]]:
+            List of parsed quotes.
+    """
     quotes_dir = _quotes_dir()
     pattern = f"Sales_Quote_{customer_no}*.json"
     results = []

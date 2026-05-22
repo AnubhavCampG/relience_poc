@@ -11,6 +11,23 @@ from app.sql.validator import SQLValidationError, validate_sql
 
 
 def route_intent(state: dict) -> dict:
+    """
+    Task:
+        Analyze the incoming user request and determine the user's operational intent
+        (either PDF extraction, sales quote creation, or raw SQL query search).
+
+    Input_Params:
+        state (dict):
+            Current Graph AgentState dictionary.
+
+    Output_Params:
+        dict:
+            Updated state dict containing parsed intent, loaded database schema, and retry count.
+
+    Returns:
+        dict:
+            Substate update.
+    """
     user_query = state.get("user_query", "")
     has_pdf = bool(state.get("pdf_path"))
     intent = llm.classify_intent(user_query, has_pdf_path=has_pdf)
@@ -22,6 +39,22 @@ def route_intent(state: dict) -> dict:
 
 
 def sql_writer(state: dict) -> dict:
+    """
+    Task:
+        Draft a PostgreSQL query using the LLM agent based on the user's natural language request.
+
+    Input_Params:
+        state (dict):
+            Current Graph AgentState dictionary.
+
+    Output_Params:
+        dict:
+            Substate update containing the drafted 'generated_sql' and any compilation 'validation_error'.
+
+    Returns:
+        dict:
+            Substate update.
+    """
     user_query = state["user_query"]
     schema = state.get("schema_fragment") or get_schema_fragment()
     try:
@@ -32,6 +65,22 @@ def sql_writer(state: dict) -> dict:
 
 
 def validate_sql_node(state: dict) -> dict:
+    """
+    Task:
+        Validate the generated SQL statement for syntax errors, safety restrictions, and access constraints.
+
+    Input_Params:
+        state (dict):
+            Current Graph AgentState dictionary.
+
+    Output_Params:
+        dict:
+            Substate update containing verified SQL or appropriate validation error.
+
+    Returns:
+        dict:
+            Substate update.
+    """
     sql = state.get("generated_sql", "")
     if not sql:
         return {"validation_error": state.get("validation_error", "No SQL generated")}
@@ -43,6 +92,23 @@ def validate_sql_node(state: dict) -> dict:
 
 
 def repair_sql_node(state: dict) -> dict:
+    """
+    Task:
+        Attempt to automatically fix a failed SQL statement by sending it back to the LLM
+        with error feedback.
+
+    Input_Params:
+        state (dict):
+            Current Graph AgentState dictionary.
+
+    Output_Params:
+        dict:
+            Substate update containing the corrected SQL statement, cleared validation error, and incremented retry count.
+
+    Returns:
+        dict:
+            Substate update.
+    """
     user_query = state["user_query"]
     failed_sql = state.get("generated_sql", "")
     error = state.get("validation_error", "Unknown error")
@@ -64,6 +130,22 @@ def repair_sql_node(state: dict) -> dict:
 
 
 def execute_sql_node(state: dict) -> dict:
+    """
+    Task:
+        Execute the fully validated PostgreSQL query against the target relational database.
+
+    Input_Params:
+        state (dict):
+            Current Graph AgentState dictionary.
+
+    Output_Params:
+        dict:
+            Substate update containing execution results under 'sql_result' or execution error in 'validation_error'.
+
+    Returns:
+        dict:
+            Substate update.
+    """
     sql = state.get("generated_sql", "")
     try:
         result = execute_query(sql)
@@ -75,6 +157,22 @@ def execute_sql_node(state: dict) -> dict:
 
 
 def pdf_extractor(state: dict) -> dict:
+    """
+    Task:
+        Extract and parse text content from a specified local PDF file.
+
+    Input_Params:
+        state (dict):
+            Current Graph AgentState dictionary.
+
+    Output_Params:
+        dict:
+            Substate update containing extracted text or errors in 'pdf_result' and resolved file path in 'pdf_path'.
+
+    Returns:
+        dict:
+            Substate update.
+    """
     user_query = state["user_query"]
     pdf_path = state.get("pdf_path") or pdf_service.extract_path_from_query(user_query)
     use_ocr = state.get("use_ocr", False)
@@ -100,6 +198,23 @@ def pdf_extractor(state: dict) -> dict:
 
 
 def quote_builder(state: dict) -> dict:
+    """
+    Task:
+        Parse, validate, and construct a new dynamic sales quote based on items
+        and customer details parsed from user queries.
+
+    Input_Params:
+        state (dict):
+            Current Graph AgentState dictionary.
+
+    Output_Params:
+        dict:
+            Substate update containing quote output under 'quote_result' and original parameters under 'quote_payload'.
+
+    Returns:
+        dict:
+            Substate update.
+    """
     user_query = state["user_query"]
     payload = llm.parse_quote_from_query(user_query)
 
@@ -126,6 +241,23 @@ def quote_builder(state: dict) -> dict:
 
 
 def respond(state: dict) -> dict:
+    """
+    Task:
+        Synthesize the collected execution results (SQL results, PDF texts, or Quote logs)
+        and draft a readable, descriptive conversational reply for the user.
+
+    Input_Params:
+        state (dict):
+            Current Graph AgentState dictionary.
+
+    Output_Params:
+        dict:
+            Substate update containing the conversational answer under 'final_answer'.
+
+    Returns:
+        dict:
+            Substate update.
+    """
     user_query = state["user_query"]
     intent = state.get("intent", "query")
 
@@ -160,6 +292,23 @@ def respond(state: dict) -> dict:
 
 
 def should_repair(state: dict) -> str:
+    """
+    Task:
+        Conditional router node that determines whether a failed SQL statement
+        should be sent to the auto-repair loop or aborted immediately based on retry limits.
+
+    Input_Params:
+        state (dict):
+            Current Graph AgentState dictionary.
+
+    Output_Params:
+        str:
+            The name of the next node to transition to ("repair", "execute", or "respond").
+
+    Returns:
+        str:
+            Transition route name.
+    """
     if state.get("validation_error"):
         if state.get("retry_count", 0) < 2:
             return "repair"
@@ -168,6 +317,23 @@ def should_repair(state: dict) -> str:
 
 
 def route_by_intent(state: dict) -> str:
+    """
+    Task:
+        Conditional router node that maps the parsed intent of the user
+        to the appropriate starting action node.
+
+    Input_Params:
+        state (dict):
+            Current Graph AgentState dictionary.
+
+    Output_Params:
+        str:
+            The name of the starting action node to transition to ("pdf", "quote", or "sql_writer").
+
+    Returns:
+        str:
+            Transition node name.
+    """
     intent = state.get("intent", "query")
     if intent == "pdf":
         return "pdf"

@@ -22,6 +22,19 @@ CSV_MAPPING = {
 
 
 def setup_database():
+    """
+    Task:
+        Bootstrap the legacy SQLite database by parsing custom DDL statements and seeding tables from CSV files (deprecated in favor of PostgreSQL).
+
+    Input_Params:
+        None
+
+    Output_Params:
+        None
+
+    Returns:
+        None
+    """
     DB_FILE.parent.mkdir(parents=True, exist_ok=True)
     if DB_FILE.exists():
         DB_FILE.unlink()

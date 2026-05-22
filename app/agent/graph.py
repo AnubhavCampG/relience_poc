@@ -20,6 +20,21 @@ from app.agent.state import AgentState
 
 
 def build_graph():
+    """
+    Task:
+        Compile the LangGraph state transitions and logic nodes into a single executable state machine.
+
+    Input_Params:
+        None
+
+    Output_Params:
+        CompiledStateGraph:
+            The compiled state graph that manages turns.
+
+    Returns:
+        CompiledStateGraph:
+            Compiled state machine ready to run.
+    """
     graph = StateGraph(AgentState)
 
     graph.add_node("route_intent", route_intent)
@@ -62,6 +77,21 @@ def build_graph():
 
 @lru_cache
 def get_agent_graph():
+    """
+    Task:
+        Retrieve the compiled state graph cached as a singleton.
+
+    Input_Params:
+        None
+
+    Output_Params:
+        CompiledStateGraph:
+            The compiled state graph.
+
+    Returns:
+        CompiledStateGraph:
+            Cached state graph.
+    """
     return build_graph()
 
 
@@ -71,7 +101,35 @@ def run_agent_turn(
     pdf_path: str | None = None,
     use_ocr: bool = False,
 ) -> dict:
-    """Run one agent turn and return final state."""
+    """
+    Task:
+        Run one agent turn through the compiled LangGraph and return the resolved final state.
+
+    Input_Params:
+        user_query (str):
+            The natural language request from the user.
+            Example: "Show details of ERA INDUSTRIES LLC"
+        session_messages (list | None):
+            Optional historical chat messages list.
+        pdf_path (str | None):
+            Optional local file location to a PDF to process.
+            Example: "Earle M. Jorgensen Company.pdf"
+        use_ocr (bool):
+            Whether to use system OCR tools to extract scanned pages.
+            Example: True
+
+    Output_Params:
+        dict:
+            Resolved final state from LangGraph execution.
+
+    Returns:
+        dict:
+            Structured final AgentState results dictionary.
+
+    Raises:
+        Exception:
+            If compilation or runtime graph invocation fails.
+    """
     graph = get_agent_graph()
     initial_state: dict = {
         "user_query": user_query,

@@ -1,5 +1,10 @@
 #!/usr/bin/env python
-"""Interactive CLI for the Reliance AI Copilot."""
+"""
+Task:
+    Interactive Command-Line Interface (CLI) for the Reliance AI Copilot.
+    Provides users with a natural language conversation interface to query the database,
+    generate sales quotes, and extract text from PDF files.
+"""
 
 import sys
 from pathlib import Path
@@ -14,6 +19,25 @@ from app.agent.graph import run_agent_turn  # noqa: E402
 
 
 def chat() -> None:
+    """
+    Task:
+        Start and manage the interactive chat loop with the user, parsing
+        special instructions like PDF extracts, sending queries to the LangGraph agent,
+        and printing formatting SQL statements and AI answers.
+
+    Input_Params:
+        None
+
+    Output_Params:
+        None
+
+    Returns:
+        None
+
+    Raises:
+        Exception:
+            If unexpected agent turn processing or interface loop crashes occur.
+    """
     print("Welcome to the Reliance AI Copilot! (Type 'exit' to quit)")
     print("Tip: pdf:path/to/file.pdf Summarize this  |  add --ocr for scanned PDFs")
     while True:

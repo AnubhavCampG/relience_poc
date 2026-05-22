@@ -14,6 +14,21 @@ from app.prompts.templates import build_system_prompt
 
 @lru_cache
 def get_chat_model() -> AzureChatOpenAI:
+    """
+    Task:
+        Initialize and cache the AzureChatOpenAI client utilizing settings from configuration.
+
+    Input_Params:
+        None
+
+    Output_Params:
+        AzureChatOpenAI:
+            Cached AzureChatOpenAI instance.
+
+    Returns:
+        AzureChatOpenAI:
+            The configured chat model.
+    """
     settings = get_settings()
     return AzureChatOpenAI(
         azure_endpoint=settings.azure_openai_endpoint,
@@ -25,6 +40,26 @@ def get_chat_model() -> AzureChatOpenAI:
 
 
 def invoke_text(system: str, user: str) -> str:
+    """
+    Task:
+        Submit system and user prompts to the Azure OpenAI chat model and return the textual response content.
+
+    Input_Params:
+        system (str):
+            The system context or behavioral guidelines instruction.
+            Example: "You are a helpful assistant."
+        user (str):
+            The user prompt or query details.
+            Example: "Hello AI!"
+
+    Output_Params:
+        str:
+            The raw text content returned by the Azure OpenAI chat completion.
+
+    Returns:
+        str:
+            Response content.
+    """
     model = get_chat_model()
     response = model.invoke(
         [SystemMessage(content=system), HumanMessage(content=user)]
@@ -33,7 +68,23 @@ def invoke_text(system: str, user: str) -> str:
 
 
 def extract_sql_from_response(text: str) -> str | None:
-    """Extract SQL from LLM response, handling markdown fences."""
+    """
+    Task:
+        Extract and clean a raw SQL query string from an LLM response, parsing markdown code blocks if present.
+
+    Input_Params:
+        text (str):
+            The raw chat response string containing SQL (often enclosed in markdown fences).
+            Example: "```sql SELECT * FROM accounts; ```"
+
+    Output_Params:
+        str | None:
+            Extracted, stripped, and cleaned SQL string, or None if no SQL pattern matches.
+
+    Returns:
+        str | None:
+            Extracted SQL query or None.
+    """
     text = text.strip()
     fence_match = re.search(r"```(?:sql)?\s*([\s\S]*?)```", text, re.IGNORECASE)
     if fence_match:
@@ -48,7 +99,26 @@ def extract_sql_from_response(text: str) -> str | None:
 
 
 def classify_intent(user_query: str, has_pdf_path: bool = False) -> str:
-    """Return 'pdf', 'quote', or 'query'."""
+    """
+    Task:
+        Classify a natural language user query intent into one of the known categories: 'pdf', 'quote', or 'query'.
+
+    Input_Params:
+        user_query (str):
+            The input textual message from the user.
+            Example: "Create a sales quote for customer 123"
+        has_pdf_path (bool):
+            Flag indicating whether a PDF path was explicitly provided.
+            Example: False
+
+    Output_Params:
+        str:
+            Categorized intent string ('pdf', 'quote', or 'query').
+
+    Returns:
+        str:
+            Classified intent label.
+    """
     lower = user_query.lower()
     if has_pdf_path:
         return "pdf"
@@ -73,7 +143,26 @@ def classify_intent(user_query: str, has_pdf_path: bool = False) -> str:
 
 
 def summarize_pdf_text(user_query: str, extracted_text: str) -> str:
-    """Summarize or answer questions about extracted PDF text."""
+    """
+    Task:
+        Generate a summary or answer user questions based on the provided PDF text using the Azure OpenAI LLM.
+
+    Input_Params:
+        user_query (str):
+            The user's direct request or query.
+            Example: "Summarize this PDF"
+        extracted_text (str):
+            Extracted text content from the PDF document.
+            Example: "Reliance Q3 report..."
+
+    Output_Params:
+        str:
+            The generated summary response text.
+
+    Returns:
+        str:
+            Answer or summary response text.
+    """
     settings = get_settings()
     max_chars = settings.pdf_max_chars_in_response
     text_for_prompt = extracted_text
@@ -94,6 +183,30 @@ Provide a clear, helpful response. If summarizing, use bullet points for key fin
 
 
 def generate_sql(user_query: str, schema_fragment: str) -> str:
+    """
+    Task:
+        Generate a database-compliant SQL query based on a user's natural language question and database schema fragment.
+
+    Input_Params:
+        user_query (str):
+            The user prompt or query.
+            Example: "Find total sales in 2025"
+        schema_fragment (str):
+            The structural database DDL or catalog fragment context.
+            Example: "CREATE TABLE sales (...)"
+
+    Output_Params:
+        str:
+            The generated and extracted SQL query string.
+
+    Returns:
+        str:
+            Valid SQL query string.
+
+    Raises:
+        ValueError:
+            Raised if SQL extraction fails or LLM output doesn't contain a valid SQL structure.
+    """
     from app.prompts.templates import build_sql_writer_prompt
 
     system = build_system_prompt(schema_fragment)
@@ -111,6 +224,36 @@ def repair_sql(
     error: str,
     schema_fragment: str,
 ) -> str:
+    """
+    Task:
+        Synthesize a repaired SQL query based on a failed query attempt, database schema context, and the engine-specific error message.
+
+    Input_Params:
+        user_query (str):
+            The original natural language question from the user.
+            Example: "Show all products"
+        failed_sql (str):
+            The incorrect SQL query that failed execution.
+            Example: "SELECT name FROM products"
+        error (str):
+            The database engine error message returned during execution.
+            Example: "column 'name' does not exist"
+        schema_fragment (str):
+            The DDL structural database details.
+            Example: "CREATE TABLE products (product_id VARCHAR, description VARCHAR)"
+
+    Output_Params:
+        str:
+            The newly corrected and repaired SQL query string.
+
+    Returns:
+        str:
+            Corrected SQL query.
+
+    Raises:
+        ValueError:
+            Raised if the repaired SQL cannot be extracted from the LLM response.
+    """
     from app.prompts.templates import build_repair_prompt
 
     system = build_system_prompt(schema_fragment)
@@ -123,6 +266,26 @@ def repair_sql(
 
 
 def generate_answer(user_query: str, context: str) -> str:
+    """
+    Task:
+        Synthesize a final reader-friendly natural language response summarizing database or tool output context for the user query.
+
+    Input_Params:
+        user_query (str):
+            The user prompt or query.
+            Example: "What was the total amount?"
+        context (str):
+            Database result rows, status, or raw details represented as context text.
+            Example: "[{'sum': 10500}]"
+
+    Output_Params:
+        str:
+            The detailed natural language summary or answer.
+
+    Returns:
+        str:
+            Synthesized answer.
+    """
     from app.prompts.templates import build_respond_prompt
 
     system = "You are a helpful data assistant for Reliance. Summarize results clearly."
@@ -131,7 +294,23 @@ def generate_answer(user_query: str, context: str) -> str:
 
 
 def parse_quote_from_query(user_query: str) -> dict[str, Any] | None:
-    """Use LLM to extract quote parameters from natural language."""
+    """
+    Task:
+        Parse sales quote details (customer_no, items, product_id, quantity, price) from natural language instructions.
+
+    Input_Params:
+        user_query (str):
+            The raw text request to draft a sales quote.
+            Example: "Quote customer C1 with product P1 qty 10 price 5"
+
+    Output_Params:
+        dict[str, Any] | None:
+            Parsed JSON dict representation containing customer info and product quote items, or None if parsing fails.
+
+    Returns:
+        dict[str, Any] | None:
+            Extracted JSON dictionary or None.
+    """
     system = """Extract sales quote parameters from the user message.
 Return JSON only: {"customer_no": "...", "items": [{"product_id": "...", "quantity": N, "price": N}]}
 If not a quote request, return {"error": "not a quote"}"""

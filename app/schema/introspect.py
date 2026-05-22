@@ -17,6 +17,16 @@ Join paths:
 
 @dataclass
 class SchemaCache:
+    """
+    Task:
+        Manage caching of introspected SQL database schemas to optimize prompt compilation speed.
+
+    Input_Params:
+        fragment (str):
+            The generated database schema description string.
+        fetched_at (float):
+            Epoch time of when the cache was populated.
+    """
     fragment: str = ""
     fetched_at: float = 0.0
 
@@ -25,6 +35,26 @@ _cache = SchemaCache()
 
 
 def _fetch_schema_fragment() -> str:
+    """
+    Task:
+        Query the PostgreSQL system catalog columns view to dynamically fetch
+        table columns, data types, and nullability constraints, compiling them into a single string.
+
+    Input_Params:
+        None
+
+    Output_Params:
+        str:
+            Formatted database schema context block.
+
+    Returns:
+        str:
+            Compiled DDL-like schema text representation.
+
+    Raises:
+        Exception:
+            If database connection or query execution fails.
+    """
     settings = get_settings()
     tables = settings.allowed_tables
     placeholders = ", ".join(f"'{t}'" for t in tables)
@@ -61,6 +91,24 @@ def _fetch_schema_fragment() -> str:
 
 
 def get_schema_fragment(force_refresh: bool = False) -> str:
+    """
+    Task:
+        Retrieve the dynamic database schema fragment, using the cached singleton
+        unless expired or forced to refresh.
+
+    Input_Params:
+        force_refresh (bool):
+            Whether to ignore cache and perform a live query fetch.
+            Example: True
+
+    Output_Params:
+        str:
+            The schema fragment description string.
+
+    Returns:
+        str:
+            Cached or newly retrieved database schema fragment.
+    """
     settings = get_settings()
     global _cache
     now = time.time()
@@ -77,5 +125,18 @@ def get_schema_fragment(force_refresh: bool = False) -> str:
 
 
 def invalidate_schema_cache() -> None:
+    """
+    Task:
+        Reset the cached dynamic schema fragment, forcing next retrieval to fetch live.
+
+    Input_Params:
+        None
+
+    Output_Params:
+        None
+
+    Returns:
+        None
+    """
     global _cache
     _cache = SchemaCache()

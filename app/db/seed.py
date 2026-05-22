@@ -16,7 +16,23 @@ CSV_TABLES = (
 
 
 def transpile_to_postgres(sql_content: str) -> list[str]:
-    """Convert MS SQL / Snowflake DDL to PostgreSQL-compatible statements."""
+    """
+    Task:
+        Convert MS SQL / Snowflake DDL schema commands dynamically to PostgreSQL-compatible statements.
+        Applies data type and syntax mappings (e.g. converting GO delimiters, custom bit types, decimal bounds, etc.).
+
+    Input_Params:
+        sql_content (str):
+            The source database schema definition SQL scripts.
+
+    Output_Params:
+        list[str]:
+            List of converted individual SQL CREATE TABLE statements.
+
+    Returns:
+        list[str]:
+            PostgreSQL-compatible statement list.
+    """
     sql_content = re.sub(r"(?m)^\s*GO\s*$", ";", sql_content, flags=re.IGNORECASE)
     statements: list[str] = []
 
@@ -87,6 +103,20 @@ def transpile_to_postgres(sql_content: str) -> list[str]:
 
 
 def drop_tables(engine) -> None:
+    """
+    Task:
+        Drop all allowed application tables in the database with CASCADE to ensure a completely fresh start.
+
+    Input_Params:
+        engine (Engine):
+            SQLAlchemy connection engine used.
+
+    Output_Params:
+        None
+
+    Returns:
+        None
+    """
     tables = list(get_settings().allowed_tables)
     with engine.connect() as conn:
         for table in reversed(tables):
@@ -95,6 +125,28 @@ def drop_tables(engine) -> None:
 
 
 def import_csv(engine, table: str, csv_path) -> int:
+    """
+    Task:
+        Truncate a specified table and import all records from a source CSV seed dataset
+        using high-performance prepared INSERT operations.
+
+    Input_Params:
+        engine (Engine):
+            SQLAlchemy connection engine used.
+        table (str):
+            The target table name to populate.
+            Example: "PORTAL_CUSTOMER"
+        csv_path (str | Path):
+            Location of the CSV dataset to load.
+
+    Output_Params:
+        int:
+            Total count of imported rows.
+
+    Returns:
+        int:
+            Number of successfully imported rows.
+    """
     from pathlib import Path
 
     path = Path(csv_path)
@@ -127,7 +179,25 @@ def import_csv(engine, table: str, csv_path) -> int:
 
 
 def setup_database(reset: bool = True) -> dict[str, int]:
-    """Create tables from DDL and load CSV seed data."""
+    """
+    Task:
+        Initialize the complete PostgreSQL relational database structure,
+        optionally dropping existing tables, compiling SQL DDL schema files to Postgres,
+        importing CSV datasets, and executing final row counts verification.
+
+    Input_Params:
+        reset (bool):
+            Whether to drop existing tables before creating schema.
+            Example: True
+
+    Output_Params:
+        dict[str, int]:
+            A dictionary containing table names as keys and verified row count totals as values.
+
+    Returns:
+        dict[str, int]:
+            Structured row count report.
+    """
     settings = get_settings()
     engine = get_engine()
 

@@ -16,6 +16,20 @@ load_dotenv()
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    """
+    Task:
+        Manage FastAPI application lifespan events, primarily pre-warming the database schema cache if the database connection is active.
+
+    Input_Params:
+        app (FastAPI):
+            The target FastAPI application instance.
+
+    Output_Params:
+        None
+
+    Returns:
+        None
+    """
     # Warm schema cache on startup if DB is available
     if check_db_connection():
         try:
@@ -48,6 +62,25 @@ app.include_router(pdf.router, prefix="/api/v1")
 
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
+    """
+    Task:
+        Catch and format all unhandled system exceptions globally, returning a uniform 500 JSON response.
+
+    Input_Params:
+        request (Request):
+            The incoming HTTP Request instance that triggered the error.
+        exc (Exception):
+            The caught unhandled Exception.
+            Example: ConnectionError("DB is down")
+
+    Output_Params:
+        JSONResponse:
+            FastAPI JSONResponse containing error details and standard error code.
+
+    Returns:
+        JSONResponse:
+            Formatted exception payload.
+    """
     return JSONResponse(
         status_code=500,
         content={"detail": str(exc), "error_code": "internal_error"},

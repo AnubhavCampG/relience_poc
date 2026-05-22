@@ -1,5 +1,9 @@
 #!/usr/bin/env python
-"""Initialize PostgreSQL schema and load CSV seed data."""
+"""
+Task:
+    CLI executable utility script to initialize the PostgreSQL schema
+    and load seed data from Customer, Product, and Inventory CSV datasets.
+"""
 
 import sys
 from pathlib import Path
@@ -15,6 +19,24 @@ from app.db.seed import setup_database  # noqa: E402
 
 
 def main() -> None:
+    """
+    Task:
+        Main entry point for resetting the PostgreSQL database,
+        creating all target schemas dynamically, and populating tables with CSV records.
+
+    Input_Params:
+        None
+
+    Output_Params:
+        None
+
+    Returns:
+        None
+
+    Raises:
+        Exception:
+            If connection fails or CSV seed file parser crashes.
+    """
     print("Initializing Reliance PostgreSQL database...")
     counts = setup_database(reset=True)
     print("\nDone. Row counts:", counts)

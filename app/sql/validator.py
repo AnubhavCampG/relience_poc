@@ -23,10 +23,32 @@ DISALLOWED_EXPRESSIONS = (
 
 
 class SQLValidationError(Exception):
+    """
+    Task:
+        Custom exception class raised when SQL query validation fails safety or syntax checks.
+    """
     pass
 
 
 def _normalize_query(query: str) -> str:
+    """
+    Task:
+        Clean up SQL statements by stripping whitespace, removing markdown code blocks,
+        and slicing trailing semicolons.
+
+    Input_Params:
+        query (str):
+            The raw SQL string to normalize.
+            Example: "```sql SELECT * FROM table; ```"
+
+    Output_Params:
+        str:
+            Cleaned SQL statement without wrapping markers.
+
+    Returns:
+        str:
+            Normalized SQL query string.
+    """
     q = query.strip()
     # Remove markdown code fences if present
     q = re.sub(r"^```(?:sql)?\s*", "", q, flags=re.IGNORECASE)
@@ -36,8 +58,28 @@ def _normalize_query(query: str) -> str:
 
 def validate_sql(query: str) -> str:
     """
-    Validate SQL for safety. Returns normalized query on success.
-    Raises SQLValidationError on failure.
+    Task:
+        Perform comprehensive static safety checks on a SQL query using sqlglot.
+        Ensures the query is a single SELECT statement, references only whitelisted tables,
+        and optionally blocks SELECT * expressions.
+
+    Input_Params:
+        query (str):
+            The drafted SQL query statement.
+            Example: "SELECT * FROM PORTAL_CUSTOMER"
+
+    Output_Params:
+        str:
+            The safe, normalized SQL statement.
+
+    Returns:
+        str:
+            Verified normalized SQL query string.
+
+    Raises:
+        SQLValidationError:
+            If query fails syntax checks, executes multiple statements, performs mutation actions (INSERT/DROP),
+            references illegal tables, or breaks SELECT * rules.
     """
     settings = get_settings()
     normalized = _normalize_query(query)

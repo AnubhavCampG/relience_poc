@@ -7,6 +7,11 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 
 class Settings(BaseSettings):
+    """
+    Task:
+        Manage all environment-based configuration parameters for the Reliance AI Copilot.
+        Uses Pydantic BaseSettings to load environment variables from the project .env file automatically.
+    """
     model_config = SettingsConfigDict(
         env_file=PROJECT_ROOT / ".env",
         env_file_encoding="utf-8",
@@ -34,21 +39,102 @@ class Settings(BaseSettings):
 
     @property
     def project_root(self) -> Path:
+        """
+        Task:
+            Provide the resolved absolute Path to the project root directory.
+
+        Input_Params:
+            None
+
+        Output_Params:
+            Path:
+                The project root path object.
+
+        Returns:
+            Path:
+                Absolute directory path of the project.
+        """
         return PROJECT_ROOT
 
     @property
     def data_dir(self) -> Path:
+        """
+        Task:
+            Provide the absolute path to the 'data' directory in the project.
+
+        Input_Params:
+            None
+
+        Output_Params:
+            Path:
+                The data directory path object.
+
+        Returns:
+            Path:
+                Absolute path to the data directory.
+        """
         return PROJECT_ROOT / "data"
 
     @property
     def ddl_path(self) -> Path:
+        """
+        Task:
+            Provide the absolute path to the Table-Script.sql DDL file.
+
+        Input_Params:
+            None
+
+        Output_Params:
+            Path:
+                The DDL file path object.
+
+        Returns:
+            Path:
+                Absolute path to the DDL schema SQL script.
+        """
         return self.data_dir / "ddl" / "Table-Script.sql"
 
     @property
     def seed_dir(self) -> Path:
+        """
+        Task:
+            Provide the path to the seed CSV directory.
+
+        Input_Params:
+            None
+
+        Output_Params:
+            Path:
+                The seed directory path object.
+
+        Returns:
+            Path:
+                Absolute path to the CSV seed files directory.
+        """
         return self.data_dir / "seed"
 
     def seed_csv_path(self, table: str) -> Path:
+        """
+        Task:
+            Map a database table name to its source CSV file path.
+
+        Input_Params:
+            table (str):
+                Name of the table to look up CSV seed data for.
+                Example: "MDM_DIM_PRODUCT_MASTER_MV"
+
+        Output_Params:
+            Path:
+                The mapped CSV seed file path object.
+
+        Returns:
+            Path:
+                Resolved path to the source CSV file.
+
+        Raises:
+            KeyError:
+                If the table name has no CSV mapped.
+        """
         mapping = {
             "MDM_DIM_PRODUCT_MASTER_MV": "Product.csv",
             "FCT_INVENTORY_MV": "Inventory.csv",
@@ -61,9 +147,39 @@ class Settings(BaseSettings):
 
     @property
     def runtime_dir(self) -> Path:
+        """
+        Task:
+            Provide the path to the project's temporary runtime directory.
+
+        Input_Params:
+            None
+
+        Output_Params:
+            Path:
+                The runtime directory path object.
+
+        Returns:
+            Path:
+                Absolute path of the runtime directory.
+        """
         return PROJECT_ROOT / "runtime"
 
 
 @lru_cache
 def get_settings() -> Settings:
+    """
+    Task:
+        Return a cached Singleton instance of the Settings configuration.
+
+    Input_Params:
+        None
+
+    Output_Params:
+        Settings:
+            The loaded Settings configuration object.
+
+    Returns:
+        Settings:
+            Settings configuration singleton.
+    """
     return Settings()

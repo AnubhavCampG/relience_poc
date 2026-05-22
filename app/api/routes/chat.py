@@ -13,6 +13,26 @@ router = APIRouter(prefix="/chat", tags=["chat"])
 
 
 def _build_chat_response(result: dict, session_id: str) -> ChatResponse:
+    """
+    Task:
+        Helper to construct a standard ChatResponse instance from the raw dictionary returned by the agent turn execution.
+
+    Input_Params:
+        result (dict):
+            The dictionary of state data returned from the agent run turn.
+            Example: {"final_answer": "Done", "intent": "sql_query"}
+        session_id (str):
+            The session identifier associated with the request.
+            Example: "session-12345"
+
+    Output_Params:
+        ChatResponse:
+            Constructed ChatResponse schema containing formatted answers, database rows, SQL details, and PDF previews.
+
+    Returns:
+        ChatResponse:
+            Formatted chat response object.
+    """
     sql_result = result.get("sql_result") or {}
     rows_preview = sql_result.get("rows", [])[:10] if sql_result else None
     pdf_result = result.get("pdf_result") or {}
@@ -34,6 +54,27 @@ def _build_chat_response(result: dict, session_id: str) -> ChatResponse:
 
 @router.post("", response_model=ChatResponse)
 def chat(request: ChatRequest) -> ChatResponse:
+    """
+    Task:
+        Handle structured POST requests to interact with the LLM/SQL/PDF LangGraph Agent. Manages chat history retrieval, saving user requests, executing the state graph turn, saving response messages, and generating the response payload.
+
+    Input_Params:
+        request (ChatRequest):
+            ChatRequest containing the message prompt, session_id, and optional PDF path/configurations.
+            Example: ChatRequest(message="Retrieve all accounts")
+
+    Output_Params:
+        ChatResponse:
+            A ChatResponse containing the agent's response details.
+
+    Returns:
+        ChatResponse:
+            Formatted chat response.
+
+    Raises:
+        HTTPException:
+            Raised if the LangGraph turn execution encounters an exception.
+    """
     session_id = get_or_create_session(request.session_id)
     messages = get_session_messages(session_id)
 
@@ -62,7 +103,35 @@ async def chat_with_pdf(
     session_id: str | None = Form(None),
     use_ocr: bool = Form(False),
 ) -> ChatResponse:
-    """Chat with an uploaded PDF — routes through LangGraph pdf_extractor node."""
+    """
+    Task:
+        Receive an uploaded PDF file and a prompt message, save the file to local uploads, and execute a state graph turn with the uploaded PDF as target context.
+
+    Input_Params:
+        message (str):
+            The user prompt or query.
+            Example: "Summarize this invoice"
+        file (UploadFile):
+            The uploaded PDF document to analyze.
+        session_id (str | None):
+            Optional session key to track dialogue.
+            Example: "session-12345"
+        use_ocr (bool):
+            Indicates whether OCR parsing is required.
+            Example: False
+
+    Output_Params:
+        ChatResponse:
+            The compiled ChatResponse detailing the agent's analysis of the PDF.
+
+    Returns:
+        ChatResponse:
+            Chat response representing findings.
+
+    Raises:
+        HTTPException:
+            Raised if an invalid file type is uploaded, an empty file is processed, or the agent execution fails.
+    """
     if not file.filename or not file.filename.lower().endswith(".pdf"):
         raise HTTPException(status_code=400, detail="Only PDF files are accepted")
 

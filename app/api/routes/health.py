@@ -9,11 +9,41 @@ router = APIRouter(tags=["health"])
 
 @router.get("/health", response_model=HealthResponse)
 def health() -> HealthResponse:
+    """
+    Task:
+        Provide an instantaneous health check response indicating that the web service is running.
+
+    Input_Params:
+        None
+
+    Output_Params:
+        HealthResponse:
+            A Pydantic model response with status set to "ok".
+
+    Returns:
+        HealthResponse:
+            Health check status representation.
+    """
     return HealthResponse(status="ok")
 
 
 @router.get("/ready", response_model=ReadyResponse)
 def ready() -> ReadyResponse:
+    """
+    Task:
+        Perform dependency checks on the database connectivity and the cached database schema state to verify if the service is ready to handle agent workflows.
+
+    Input_Params:
+        None
+
+    Output_Params:
+        ReadyResponse:
+            Pydantic model summarizing readiness of backend systems.
+
+    Returns:
+        ReadyResponse:
+            Readiness check status with status, database, and schema_cached indicators.
+    """
     db_ok = check_db_connection()
     schema_ok = False
     if db_ok:
